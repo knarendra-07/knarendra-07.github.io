@@ -9,13 +9,37 @@
   body{ font-family: Arial, sans-serif; background: #f3faf3; margin:0; padding:18px; color:#1a1a1a; }
   h1{ text-align:center; color:var(--green); margin-bottom:12px; }
   .grid{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
-  .card{ background:#fff; width:220px; border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(34,136,34,0.08); text-align:center; }
+
+  .card{ background:#fff; width:220px; border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(34,136,34,0.08); text-align:center; position:relative; overflow:hidden; }
   .card img{ width:140px; height:120px; object-fit:cover; border-radius:8px; }
   .name{ font-weight:700; color:#155724; margin-top:8px; font-size:18px; }
-  .price{ margin:6px 0; color:#333; }
+  .price{ margin:4px 0; color:#333; }
   .btn{ background:var(--green); color:#fff; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
   .btn-red{ background:var(--red); }
   .btn:active{ transform:translateY(1px); }
+
+  /* Stock Labels */
+  .stock-label {
+    font-weight:600;
+    margin:6px 0;
+  }
+  .in-stock { color:var(--green); }
+  .out-stock { color:var(--red); }
+
+  /* 🔴 Out of Stock Overlay */
+  .card.out-of-stock::after {
+    content:"OUT OF STOCK";
+    position:absolute;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(217,83,79,0.78);
+    color:#fff;
+    font-size:18px;
+    font-weight:700;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    border-radius:12px;
+  }
 
   #basket{ max-width:700px; margin:0 auto 24px auto; background:#fff; border-radius:12px; padding:14px; box-shadow:0 8px 24px rgba(0,0,0,0.06); }
   #basket h2{ color:var(--green); text-align:center; margin-top:0; }
@@ -68,21 +92,23 @@
   <div class="card">
     <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg" alt="टमाटर">
     <div class="name">टमाटर</div>
-    <div class="price">₹30/kg</div>
+    <div class="price">₹28/kg</div>
+    <div class="stock-label in-stock">✅ Available</div>
     <button class="btn" onclick="openQtyModal('टमाटर',28)">Add to Basket</button>
   </div>
   <div class="card">
     <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Patates.jpg" alt="आलू">
     <div class="name">आलू</div>
-    <div class="price">₹30/kg</div>
+    <div class="price">₹22/kg</div>
+    <div class="stock-label in-stock">✅ Available</div>
     <button class="btn" onclick="openQtyModal('आलू',22)">Add to Basket</button>
   </div>
-  <div class="card">
-    <img src="https://share.google/images/UBVFlxNlUnq10BprQ" alt="भिंडी">
+  <div class="card out-of-stock">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Bhindi-BN.jpg" alt="भिंडी">
     <div class="name">भिंडी</div>
-    <div class="price">₹100/kg</div>
-    <div class="status out">❌ Out of Stock</div>
-    <button class="btn" onclick="openQtyModal('भिंडी',40)">Add to Basket</button>
+    <div class="price">₹40/kg</div>
+    <div class="stock-label out-stock">❌ Out of Stock</div>
+    <button class="btn" disabled>Add to Basket</button>
   </div>
 </div>
 
@@ -150,7 +176,7 @@ function rupee(x){return "₹"+Number(x).toFixed(2);}
 
 // Delivery Charges
 function getDeliveryCharge(total){
-  if(total < 30) return 0; // under 30 allowed ही नहीं
+  if(total < 30) return 0; 
   if(total <= 50) return 15;
   if(total <= 100) return 10;
   if(total <= 150) return 10;
