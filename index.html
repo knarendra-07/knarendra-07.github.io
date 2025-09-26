@@ -19,10 +19,7 @@
   .btn:active{ transform:translateY(1px); }
 
   /* Stock Labels */
-  .stock-label {
-    font-weight:600;
-    margin:6px 0;
-  }
+  .stock-label { font-weight:600; margin:6px 0; }
   .in-stock { color:var(--green); }
   .out-stock { color:var(--red); }
 
@@ -88,29 +85,7 @@
 <h1>NK Mart - आपका ऑर्डर</h1>
 
 <!-- Veg list -->
-<div class="grid">
-  <div class="card">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg" alt="टमाटर">
-    <div class="name">टमाटर</div>
-    <div class="price">₹28/kg</div>
-    <div class="stock-label in-stock">✅ Available</div>
-    <button class="btn" onclick="openQtyModal('टमाटर',28)">Add to Basket</button>
-  </div>
-  <div class="card">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Patates.jpg" alt="आलू">
-    <div class="name">आलू</div>
-    <div class="price">₹22/kg</div>
-    <div class="stock-label in-stock">✅ Available</div>
-    <button class="btn" onclick="openQtyModal('आलू',22)">Add to Basket</button>
-  </div>
-  <div class="card out-of-stock">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Bhindi-BN.jpg" alt="भिंडी">
-    <div class="name">भिंडी</div>
-    <div class="price">₹40/kg</div>
-    <div class="stock-label out-stock">❌ Out of Stock</div>
-    <button class="btn" disabled>Add to Basket</button>
-  </div>
-</div>
+<div class="grid" id="vegGrid"></div>
 
 <!-- Basket -->
 <div id="basket">
@@ -166,15 +141,44 @@
 </div>
 
 <script>
-const SELLER_PHONE="917387052941"; // अपना नंबर यहाँ डालो
-const SELLER_UPI="paytm.s1hxtzc@pty"; // अपना UPI डालो
+const SELLER_PHONE="917387052941"; 
+const SELLER_UPI="paytm.s1hxtzc@pty"; 
 
+// ✅ सब्ज़ी की लिस्ट (यहाँ daily price और availability बदल सकते हो)
+const vegData = [
+  {name:"टमाटर", price:28, img:"https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg", available:true},
+  {name:"आलू", price:22, img:"https://upload.wikimedia.org/wikipedia/commons/a/ab/Patates.jpg", available:true},
+  {name:"भिंडी", price:40, img:"https://upload.wikimedia.org/wikipedia/commons/6/64/Bhindi-BN.jpg", available:false}
+];
+
+// Render function
+function renderVegList(){
+  const grid=document.getElementById("vegGrid");
+  grid.innerHTML="";
+  vegData.forEach(v=>{
+    const card=document.createElement("div");
+    card.className="card"+(v.available?"":" out-of-stock");
+    card.innerHTML=`
+      <img src="${v.img}" alt="${v.name}">
+      <div class="name">${v.name}</div>
+      <div class="price">₹${v.price}/kg</div>
+      <div class="stock-label ${v.available?'in-stock':'out-stock'}">
+        ${v.available?'✅ Available':'❌ Out of Stock'}
+      </div>
+      <button class="btn" ${v.available?`onclick="openQtyModal('${v.name}',${v.price})"`:"disabled"}>
+        Add to Basket
+      </button>
+    `;
+    grid.appendChild(card);
+  });
+}
+renderVegList();
+
+// ==== बाकी का आपका Basket और Order JS Same रहेगा ====
 let basket=[];
 let currentAdd={name:null, pricePerKg:0};
 
 function rupee(x){return "₹"+Number(x).toFixed(2);}
-
-// Delivery Charges
 function getDeliveryCharge(total){
   if(total < 30) return 0; 
   if(total <= 50) return 15;
@@ -182,7 +186,6 @@ function getDeliveryCharge(total){
   if(total <= 150) return 10;
   return 0;
 }
-
 function openQtyModal(name,pricePerKg){
   currentAdd={name,pricePerKg};
   const sel=document.getElementById('weightSelect');
@@ -202,14 +205,12 @@ function openQtyModal(name,pricePerKg){
   document.getElementById('itemCount').oninput=updateQtyModalPrice;
   document.getElementById('qtyModal').style.display='flex';
 }
-
 function updateQtyModalPrice(){
   const sel=document.getElementById('weightSelect');
   const count=document.getElementById('itemCount').value||1;
   const base=Number(sel.options[sel.selectedIndex].getAttribute('data-price'));
   document.getElementById('weightPrice').innerText=rupee(base*count);
 }
-
 function confirmAddToBasket(){
   const sel=document.getElementById('weightSelect');
   const weightKg=Number(sel.value);
@@ -218,7 +219,6 @@ function confirmAddToBasket(){
   closeModal('qtyModal');
   refreshBasket();
 }
-
 function refreshBasket(){
   const list=document.getElementById('basket-list');
   list.innerHTML="";
@@ -228,7 +228,6 @@ function refreshBasket(){
     document.getElementById('totalRow').innerText="Total: ₹0.00"; 
     return;
   }
-
   let subtotal=0;
   basket.forEach((it,idx)=>{
     const itemTotal=it.pricePerKg*it.weightKg*it.qty;
@@ -239,28 +238,22 @@ function refreshBasket(){
                    <button class="remove-btn" onclick="removeItem(${idx})">Remove</button>`;
     list.appendChild(row);
   });
-
   const delivery=getDeliveryCharge(subtotal);
   const grandTotal=subtotal+delivery;
-
   if(delivery>0){
     const drow=document.createElement('div');
     drow.className="basket-item";
     drow.innerHTML=`<span>🚚 Delivery Charges</span><span>${rupee(delivery)}</span>`;
     list.appendChild(drow);
   }
-
   document.getElementById('totalRow').innerText="Total: "+rupee(grandTotal);
   document.getElementById('placeOrder').style.display="block";
 }
-
 function removeItem(i){basket.splice(i,1); refreshBasket();}
 function closeModal(id){document.getElementById(id).style.display='none';}
-
 function startOrderFlow(){
   if(basket.length===0){return;}
   let subtotal=basket.reduce((t,it)=>t+it.pricePerKg*it.weightKg*it.qty,0);
-
   if(subtotal < 30){
     const warn=document.getElementById('minOrderWarning');
     warn.style.display="block";
@@ -269,7 +262,6 @@ function startOrderFlow(){
   }
   document.getElementById('detailsModal').style.display='flex';
 }
-
 function openPaymentModal(){
   const name=document.getElementById('custName').value.trim();
   const loc=document.getElementById('custLocation').value.trim();
@@ -277,12 +269,10 @@ function openPaymentModal(){
   closeModal('detailsModal');
   document.getElementById('paymentModal').style.display='flex';
 }
-
 function selectCOD(){
   closeModal('paymentModal');
   showSuccessThenSendWhatsApp("Cash on Delivery");
 }
-
 function startUPIPayment(){
   const total=computeTotal();
   const link=`upi://pay?pa=${encodeURIComponent(SELLER_UPI)}&pn=${encodeURIComponent("Sabzi Dukaan")}&am=${total}&cu=INR&tn=Order`;
@@ -290,17 +280,14 @@ function startUPIPayment(){
   closeModal('paymentModal');
   showSuccessThenSendWhatsApp("Paid Online (UPI)");
 }
-
 function computeTotal(){
   let subtotal=basket.reduce((t,it)=>t+it.pricePerKg*it.weightKg*it.qty,0);
   let delivery=getDeliveryCharge(subtotal);
   return (subtotal+delivery).toFixed(2);
 }
-
 function showSuccessThenSendWhatsApp(paymentMode){
   const overlay=document.getElementById('successOverlay');
   overlay.style.display='flex';
-
   setTimeout(()=>{
     const name=document.getElementById('custName').value.trim();
     const loc=document.getElementById('custLocation').value.trim();
@@ -308,26 +295,21 @@ function showSuccessThenSendWhatsApp(paymentMode){
     basket.forEach(it=>{
       itemsText+=`• ${it.name} ${it.weightKg}kg ×${it.qty} = ${rupee(it.pricePerKg*it.weightKg*it.qty)}\n`;
     });
-
     let subtotal=basket.reduce((t,it)=>t+it.pricePerKg*it.weightKg*it.qty,0);
     let delivery=getDeliveryCharge(subtotal);
     let grandTotal=subtotal+delivery;
-
     if(delivery>0){
       itemsText+=`🚚 Delivery Charges = ${rupee(delivery)}\n`;
     }
-
     const total=rupee(grandTotal);
     const rawMsg=`New Order 🛒\nName: ${name}\nLocation: ${loc}\nItems:\n${itemsText}Total: ${total}\nPayment: ${paymentMode}`;
     const msg=encodeURIComponent(rawMsg);
     window.open(`https://wa.me/${SELLER_PHONE}?text=${msg}`,'_blank');
-    
-    basket=[]; 
-    refreshBasket();
+    basket=[]; refreshBasket();
     document.getElementById('custName').value=""; 
     document.getElementById('custLocation').value="";
     setTimeout(()=>{overlay.style.display='none';},2000);
-  },1300); // delay 1.3s
+  },1300);
 }
 </script>
 </body>
