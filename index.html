@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>सब्ज़ी दुकान - Demo</title>
+<style>
+  :root{ --green:#2f8e3e; --light:#eaf7ea; --red:#d9534f; }
+  body{ font-family: Arial, sans-serif; background: #f3faf3; margin:0; padding:18px; color:#1a1a1a; }
+  h1{ text-align:center; color:var(--green); margin-bottom:12px; }
+  .grid{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
+  .card{ background:#fff; width:220px; border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(34,136,34,0.08); text-align:center; }
+  .card img{ width:140px; height:120px; object-fit:cover; border-radius:8px; }
+  .name{ font-weight:700; color:#155724; margin-top:8px; font-size:18px; }
+  .price{ margin:6px 0; color:#333; }
+  .btn{ background:var(--green); color:#fff; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
+  .btn-red{ background:var(--red); }
+  .btn:active{ transform:translateY(1px); }
+
+  #basket{ max-width:700px; margin:0 auto 24px auto; background:#fff; border-radius:12px; padding:14px; box-shadow:0 8px 24px rgba(0,0,0,0.06); }
+  #basket h2{ color:var(--green); text-align:center; margin-top:0; }
+  #basket-list{ display:flex; flex-direction:column; gap:8px; margin:12px 0; }
+  .basket-item{ background:var(--light); padding:8px 10px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; }
+  .remove-btn{ background:var(--red); color:#fff; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; }
+  #totalRow{ text-align:right; font-weight:800; color:var(--green); font-size:18px; margin-top:8px; }
+  #minOrderWarning{ background:#ffe5e5; border:1px solid #ff4d4d; color:#b30000; padding:10px 14px; border-radius:8px; margin-top:10px; font-weight:600; display:none; text-align:center; }
+  #placeOrder{ display:none; margin:12px auto 0; background:var(--green); color:#fff; border:none; padding:12px 20px; border-radius:10px; cursor:pointer; font-size:16px; }
+
+  .modal{ display:none; position:fixed; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.45); z-index:2000; justify-content:center; align-items:center; }
+  .modal-content{ background:#fff; max-width:380px; border-radius:12px; padding:18px; text-align:center; box-shadow:0 12px 30px rgba(0,0,0,0.2); }
+  .modal-content h3{ margin-top:0; color:var(--green); }
+  .input, select{ width:90%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc; font-size:15px; }
+
+  .success-wrap{ display:none; position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:3000; align-items:center; justify-content:center; }
+  .tick-box{ width:180px; height:180px; background:#fff; border-radius:20px; display:flex; align-items:center; justify-content:center; flex-direction:column; box-shadow:0 12px 30px rgba(0,0,0,0.12); }
+  .checkmark { width:100px; height:100px; animation: pop 0.4s ease-in-out 1s forwards; }
+  .checkmark-circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke-width: 4;
+    stroke-miterlimit: 10;
+    stroke: var(--green);
+    fill: none;
+    animation: stroke 0.6s cubic-bezier(.65,.05,.36,1) forwards;
+  }
+  .checkmark-check {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    stroke-width: 4;
+    stroke: var(--green);
+    fill: none;
+    animation: stroke 0.4s cubic-bezier(.65,.05,.36,1) 0.6s forwards;
+  }
+  @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<h1>सब्ज़ी दुकान - आपका ऑर्डर</h1>
+
+<!-- Veg list -->
+<div class="grid">
+  <div class="card">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg" alt="टमाटर">
+    <div class="name">टमाटर</div>
+    <div class="price">₹28/kg</div>
+    <button class="btn" onclick="openQtyModal('टमाटर',28)">Add to Basket</button>
+  </div>
+  <div class="card">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Potato.jpg" alt="आलू">
+    <div class="name">आलू</div>
+    <div class="price">₹22/kg</div>
+    <button class="btn" onclick="openQtyModal('आलू',22)">Add to Basket</button>
+  </div>
+  <div class="card">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/2/27/Bhindi_ladiesfinger.jpg" alt="भिंडी">
+    <div class="name">भिंडी</div>
+    <div class="price">₹40/kg</div>
+    <button class="btn" onclick="openQtyModal('भिंडी',40)">Add to Basket</button>
+  </div>
+</div>
+
+<!-- Basket -->
+<div id="basket">
+  <h2>🛒 आपका Basket</h2>
+  <div id="basket-list">Basket खाली है</div>
+  <div id="totalRow">Total: ₹0.00</div>
+  <div id="minOrderWarning">🚫 Minimum order ₹30 required</div>
+  <button id="placeOrder" onclick="startOrderFlow()">Place Order</button>
+</div>
+
+<!-- Qty Modal -->
+<div id="qtyModal" class="modal">
+  <div class="modal-content">
+    <h3 id="qtyModalTitle">Select</h3>
+    <select id="weightSelect"></select>
+    <input type="number" id="itemCount" class="input" min="1" value="1" />
+    <div><b>Price: <span id="weightPrice">₹0.00</span></b></div>
+    <button class="btn" onclick="confirmAddToBasket()">Add</button>
+    <button class="btn btn-red" onclick="closeModal('qtyModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Customer Details -->
+<div id="detailsModal" class="modal">
+  <div class="modal-content">
+    <h3>आपकी जानकारी</h3>
+    <input id="custName" class="input" placeholder="Name" />
+    <input id="custLocation" class="input" placeholder="Location / Address" />
+    <button class="btn" onclick="openPaymentModal()">Next</button>
+    <button class="btn btn-red" onclick="closeModal('detailsModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Payment -->
+<div id="paymentModal" class="modal">
+  <div class="modal-content">
+    <h3>Payment चुनें</h3>
+    <button class="btn" onclick="selectCOD()">Cash on Delivery</button>
+    <button class="btn" onclick="startUPIPayment()">Pay Online (UPI)</button>
+    <button class="btn btn-red" onclick="closeModal('paymentModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Success -->
+<div id="successOverlay" class="success-wrap">
+  <div class="tick-box">
+    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+      <circle class="checkmark-circle" cx="26" cy="26" r="25"/>
+      <path class="checkmark-check" d="M14 27l7 7 16-16"/>
+    </svg>
+    <div style="margin-top:10px; font-weight:700; color:var(--green);">Order Placed!</div>
+  </div>
+</div>
+
+<script>
+const SELLER_PHONE="917387052941"; // अपना नंबर यहाँ डालो
+const SELLER_UPI="paytm.s1hxtzc@pty"; // अपना UPI डालो
+
+let basket=[];
+let currentAdd={name:null, pricePerKg:0};
+
+function rupee(x){return "₹"+Number(x).toFixed(2);}
+
+// Delivery Charges
+function getDeliveryCharge(total){
+  if(total < 30) return 0; // under 30 allowed ही नहीं
+  if(total <= 50) return 15;
+  if(total <= 100) return 10;
+  if(total <= 150) return 10;
+  return 0;
+}
+
+function openQtyModal(name,pricePerKg){
+  currentAdd={name,pricePerKg};
+  const sel=document.getElementById('weightSelect');
+  sel.innerHTML="";
+  const weights=[{label:"250 g",kg:0.25},{label:"500 g",kg:0.5},{label:"1 kg",kg:1},{label:"2 kg",kg:2},{label:"5 kg",kg:5}];
+  weights.forEach(w=>{
+    const opt=document.createElement('option');
+    opt.value=w.kg;
+    opt.setAttribute('data-price',pricePerKg*w.kg);
+    opt.textContent=`${w.label} - ${rupee(pricePerKg*w.kg)}`;
+    sel.appendChild(opt);
+  });
+  sel.selectedIndex=0;
+  document.getElementById('itemCount').value=1;
+  updateQtyModalPrice();
+  sel.onchange=updateQtyModalPrice;
+  document.getElementById('itemCount').oninput=updateQtyModalPrice;
+  document.getElementById('qtyModal').style.display='flex';
+}
+
+function updateQtyModalPrice(){
+  const sel=document.getElementById('weightSelect');
+  const count=document.getElementById('itemCount').value||1;
+  const base=Number(sel.options[sel.selectedIndex].getAttribute('data-price'));
+  document.getElementById('weightPrice').innerText=rupee(base*count);
+}
+
+function confirmAddToBasket(){
+  const sel=document.getElementById('weightSelect');
+  const weightKg=Number(sel.value);
+  const qty=parseInt(document.getElementById('itemCount').value)||1;
+  basket.push({name:currentAdd.name, pricePerKg:currentAdd.pricePerKg, weightKg, qty});
+  closeModal('qtyModal');
+  refreshBasket();
+}
+
+function refreshBasket(){
+  const list=document.getElementById('basket-list');
+  list.innerHTML="";
+  if(basket.length===0){
+    list.innerText="Basket खाली है"; 
+    document.getElementById('placeOrder').style.display="none"; 
+    document.getElementById('totalRow').innerText="Total: ₹0.00"; 
+    return;
+  }
+
+  let subtotal=0;
+  basket.forEach((it,idx)=>{
+    const itemTotal=it.pricePerKg*it.weightKg*it.qty;
+    subtotal+=itemTotal;
+    const row=document.createElement('div');
+    row.className="basket-item";
+    row.innerHTML=`<span>${it.name} ${it.weightKg}kg ×${it.qty} = ${rupee(itemTotal)}</span>
+                   <button class="remove-btn" onclick="removeItem(${idx})">Remove</button>`;
+    list.appendChild(row);
+  });
+
+  const delivery=getDeliveryCharge(subtotal);
+  const grandTotal=subtotal+delivery;
+
+  if(delivery>0){
+    const drow=document.createElement('div');
+    drow.className="basket-item";
+    drow.innerHTML=`<span>🚚 Delivery Charges</span><span>${rupee(delivery)}</span>`;
+    list.appendChild(drow);
+  }
+
+  document.getElementById('totalRow').innerText="Total: "+rupee(grandTotal);
+  document.getElementById('placeOrder').style.display="block";
+}
+
+function removeItem(i){basket.splice(i,1); refreshBasket();}
+function closeModal(id){document.getElementById(id).style.display='none';}
+
+function startOrderFlow(){
+  if(basket.length===0){return;}
+  let subtotal=basket.reduce((t,it)=>t+it.pricePerKg*it.weightKg*it.qty,0);
+
+  if(subtotal < 30){
+    const warn=document.getElementById('minOrderWarning');
+    warn.style.display="block";
+    setTimeout(()=>{ warn.style.display="none"; },3000);
+    return;
+  }
+  document.getElementById('detailsModal').style.display='flex';
+}
+
+function openPaymentModal(){
+  const name=document.getElementById('custName').value.trim();
+  const loc=document.getElementById('custLocation').value.trim();
+  if(!name||!loc){alert("Name और Location ज़रूरी है"); return;}
+  closeModal('detailsModal');
+  document.getElementById('paymentModal').style.display='flex';
+}
+
+function selectCOD(){
+  closeModal('paymentModal');
+  showSuccessThenSendWhatsApp("Cash on Delivery");
+}
+
+function startUPIPayment(){
+  const total=computeTotal();
+  const link=`upi://pay?pa=${encodeURIComponent(SELLER_UPI)}&pn=${encodeURIComponent("Sabzi Dukaan")}&am=${total}&cu=INR&tn=Order`;
+  if(/Mobi|Android/i.test(navigator.userAgent)){ window.location.href=link; }
+  closeModal('paymentModal');
+  showSuccessThenSendWhatsApp("Paid Online (UPI)");
+}
+
+function computeTotal(){
+  let subtotal=basket.reduce((t,it)=>t+it.pricePerKg*it.weightKg*it.qty,0);
+  let delivery=getDeliveryCharge(subtotal);
+  return (subtotal+delivery).toFixed(2);
+}
+
+function showSuccessThenSendWhatsApp(paymentMode){
+  const overlay=document.getElementById('successOverlay');
+  overlay.style.display='flex';
+
+  setTimeout(()=>{
+    const name=document.getElementById('custName').value.trim();
+    const loc=document.getElementById('custLocation').value.trim();
+    let itemsText="";
+    basket.forEach(it=>{
+      itemsText+=`• ${it.name} ${it.weightKg}kg ×${it.qty} = ${rupee(it.pricePerKg*it.weightKg*it.qty)}\n`;
+    });
+
+    let subtotal=basket.reduce((t,it)=>t+it.pricePerKg*it.weightKg*it.qty,0);
+    let delivery=getDeliveryCharge(subtotal);
+    let grandTotal=subtotal+delivery;
+
+    if(delivery>0){
+      itemsText+=`🚚 Delivery Charges = ${rupee(delivery)}\n`;
+    }
+
+    const total=rupee(grandTotal);
+    const rawMsg=`New Order 🛒\nName: ${name}\nLocation: ${loc}\nItems:\n${itemsText}Total: ${total}\nPayment: ${paymentMode}`;
+    const msg=encodeURIComponent(rawMsg);
+    window.open(`https://wa.me/${SELLER_PHONE}?text=${msg}`,'_blank');
+    
+    basket=[]; 
+    refreshBasket();
+    document.getElementById('custName').value=""; 
+    document.getElementById('custLocation').value="";
+    setTimeout(()=>{overlay.style.display='none';},2000);
+  },1300); // delay 1.3s
+}
+</script>
+</body>
+</html>
